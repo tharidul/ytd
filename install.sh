@@ -1,3 +1,6 @@
+# ytd installer
+# Source: https://github.com/tharidul/ytd
+
 #!/usr/bin/env bash
 set -e
 
