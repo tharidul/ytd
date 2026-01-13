@@ -10,6 +10,23 @@ All downloads go directly to your **~/Downloads** folder.
 
 ---
 
+## Quick Install (Recommended)
+
+Install `ytd` with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tharidul/ytd/main/install.sh | bash
+
+Restart your terminal, then run:
+
+ytd
+
+
+⚠ If you prefer, review the script before running it: install.sh
+
+
+---
+
 ## Features
 
 - Interactive terminal UI (no typing long commands)
