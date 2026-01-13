@@ -1,0 +1,120 @@
+k#!/usr/bin/env bash
+set -euo pipefail
+
+DOWNLOAD_DIR="$HOME/Downloads"
+
+# ---------- helpers ----------
+die() {
+  echo "ytd: $1" >&2
+  exit 1
+}
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1"
+}
+
+# ---------- dependencies ----------
+require yt-dlp
+require ffmpeg
+require gum
+
+# ---------- CLI MODE ----------
+if [[ $# -ge 2 ]]; then
+  MODE="$1"
+  URL="$2"
+
+  [[ ! "$URL" =~ youtube\.com|youtu\.be ]] && die "invalid YouTube URL"
+
+  case "$MODE" in
+    mp3)
+      yt-dlp --no-playlist -x --audio-format mp3 \
+        -o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL"
+      exit 0
+      ;;
+    video)
+      yt-dlp --no-playlist --merge-output-format mp4 \
+        -o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL"
+      exit 0
+      ;;
+    mp3-playlist)
+      yt-dlp -x --audio-format mp3 \
+        -o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL"
+      exit 0
+      ;;
+    video-playlist)
+      yt-dlp --merge-output-format mp4 \
+        -o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL"
+      exit 0
+      ;;
+    *)
+      die "unknown mode: $MODE"
+      ;;
+  esac
+fi
+
+# ---------- TUI MODE ----------
+clear
+
+gum style \
+  --border rounded \
+  --padding "1 2" \
+  --bold \
+  "ytd — YouTube Downloader"
+
+MODE=$(gum choose \
+  "🎬 Video (single)" \
+  "📺 Video (playlist)" \
+  "🎵 MP3 (single)" \
+  "📀 MP3 (playlist)" \
+  "❌ Exit")
+
+[[ "$MODE" == "❌ Exit" || -z "$MODE" ]] && exit 0
+
+URL=$(gum input --placeholder "Paste YouTube URL")
+
+[[ ! "$URL" =~ youtube\.com|youtu\.be ]] && {
+  gum style --foreground 196 "Invalid YouTube URL"
+  exit 1
+}
+
+FORMAT=""
+QUALITY=""
+
+if [[ "$MODE" == *Video* ]]; then
+  FORMAT=$(gum choose "MP4 (recommended)" "WebM (original)")
+  QUALITY=$(gum choose "Best" "1080p" "720p")
+fi
+
+CMD=(yt-dlp)
+
+case "$MODE" in
+  "🎬 Video (single)")
+    CMD+=(--no-playlist)
+    [[ "$QUALITY" == "1080p" ]] && CMD+=(-f "bv*[height<=1080]+ba/b")
+    [[ "$QUALITY" == "720p" ]]  && CMD+=(-f "bv*[height<=720]+ba/b")
+    [[ "$FORMAT" == "MP4 (recommended)" ]] && CMD+=(--merge-output-format mp4)
+    CMD+=(-o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL")
+    ;;
+  "📺 Video (playlist)")
+    [[ "$FORMAT" == "MP4 (recommended)" ]] && CMD+=(--merge-output-format mp4)
+    CMD+=(-o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL")
+    ;;
+  "🎵 MP3 (single)")
+    CMD+=(--no-playlist -x --audio-format mp3)
+    CMD+=(-o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL")
+    ;;
+  "📀 MP3 (playlist)")
+    CMD+=(-x --audio-format mp3)
+    CMD+=(-o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL")
+    ;;
+esac
+
+gum confirm "Download to $DOWNLOAD_DIR ?" || exit 0
+
+gum spin \
+  --title "Downloading…" \
+  --spinner dot \
+  -- "${CMD[@]}"
+
+gum style --foreground 42 --bold "✔ Download finished"
+
