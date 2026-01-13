@@ -1,3 +1,7 @@
+VERSION="0.2.0"
+AUTHOR="LKML"
+HOMEPAGE="https://lkml.live"
+
 k#!/usr/bin/env bash
 set -euo pipefail
 
@@ -59,7 +63,8 @@ gum style \
   --border rounded \
   --padding "1 2" \
   --bold \
-  "ytd — YouTube Downloader"
+  "ytd — Terminal YouTube Downloader
+by LKML • lkml.live"
 
 MODE=$(gum choose \
   "🎬 Video (single)" \

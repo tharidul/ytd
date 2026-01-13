@@ -1,11 +1,10 @@
 # ytd
 
-`ytd` is a simple, terminal-based YouTube downloader built on top of `yt-dlp`,
-with a modern TUI (text user interface) powered by `gum`.
+**ytd** is a terminal-based YouTube downloader built on top of `yt-dlp`,
+with a modern TUI powered by `gum`.
 
-It allows you to download:
-- Videos (single or playlist)
-- MP3 audio (single or playlist)
+Built and maintained by **LKML**  
+🌐 https://lkml.live
 
 All downloads go directly to your **~/Downloads** folder.
 
@@ -43,3 +42,12 @@ From inside the project directory:
 ```bash
 chmod +x ytd
 ./ytd
+---
+
+## Author
+
+**LKML**  
+Full-stack developer & Linux enthusiast  
+🌐 https://lkml.live
+
+This project is developed for learning, automation, and personal productivity.
