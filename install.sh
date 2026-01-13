@@ -1,10 +1,8 @@
-# ytd installer
-# Source: https://github.com/tharidul/ytd
-
 #!/usr/bin/env bash
 set -e
 
 PROJECT_NAME="ytd"
+REPO_RAW="https://raw.githubusercontent.com/tharidul/ytd/main"
 INSTALL_DIR="$HOME/.local/bin"
 
 echo "Installing $PROJECT_NAME…"
@@ -56,7 +54,7 @@ install_deps() {
 # -------------------------------
 # Check dependencies
 # -------------------------------
-for cmd in yt-dlp ffmpeg gum; do
+for cmd in yt-dlp ffmpeg gum curl; do
   if ! command -v "$cmd" >/dev/null; then
     install_deps
     break
@@ -64,10 +62,13 @@ for cmd in yt-dlp ffmpeg gum; do
 done
 
 # -------------------------------
-# Install ytd
+# Install ytd binary
 # -------------------------------
 mkdir -p "$INSTALL_DIR"
-cp ytd "$INSTALL_DIR/ytd"
+
+echo "Downloading ytd…"
+curl -fsSL "$REPO_RAW/ytd" -o "$INSTALL_DIR/ytd"
+
 chmod +x "$INSTALL_DIR/ytd"
 
 # -------------------------------
@@ -80,5 +81,5 @@ if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
 fi
 
 echo
-echo "✅ $PROJECT_NAME installed successfully"
-echo "➡ Restart your terminal and run: ytd"
+echo "✅ ytd installed successfully"
+echo "➡ Restart your terminal or run: source ~/.zshrc"
