@@ -69,6 +69,11 @@ chmod +x ytd
 ./ytd
 ```
 
+## Arch Linux (AUR)
+Package: ytd-lkml  
+https://aur.archlinux.org/packages/ytd-lkml
+
+
 ---
 
 ## Author
