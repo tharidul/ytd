@@ -2,6 +2,46 @@ VERSION="0.2.0"
 AUTHOR="LKML"
 HOMEPAGE="https://lkml.live"
 
+# ---------- help / version ----------
+show_help() {
+  cat <<EOF
+ytd — Terminal YouTube Downloader
+
+Usage:
+  ytd                      Launch interactive TUI
+  ytd mp3 <url>            Download single video as MP3
+  ytd video <url>          Download single video (MP4)
+  ytd mp3-playlist <url>   Download playlist as MP3
+  ytd video-playlist <url> Download playlist as video
+
+Options:
+  -h, --help       Show this help message
+  -v, --version    Show version information
+
+Author:
+  $AUTHOR
+  $HOMEPAGE
+EOF
+}
+
+show_version() {
+  echo "ytd v$VERSION"
+  echo "by $AUTHOR"
+  echo "$HOMEPAGE"
+}
+
+case "${1:-}" in
+  -h|--help)
+    show_help
+    exit 0
+    ;;
+  -v|--version)
+    show_version
+    exit 0
+    ;;
+esac
+
+
 k#!/usr/bin/env bash
 set -euo pipefail
 
