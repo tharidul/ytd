@@ -25,6 +25,17 @@ ytd
 
 ---
 
+## Uninstall
+
+To uninstall `ytd`:
+```bash
+curl -fsSL https://raw.githubusercontent.com/tharidul/ytd/main/uninstall.sh | bash
+```
+
+This removes `ytd` but keeps dependencies (`yt-dlp`, `ffmpeg`, `gum`) installed.
+
+---
+
 ## Features
 
 - Interactive terminal UI (no typing long commands)
