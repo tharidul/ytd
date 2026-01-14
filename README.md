@@ -45,6 +45,18 @@ ytd
 
 ---
 
+## Arch Linux (AUR)
+
+For Arch-based distributions, you can install directly from the AUR:
+```bash
+yay -S ytd-lkml
+```
+
+Package: ytd-lkml  
+https://aur.archlinux.org/packages/ytd-lkml
+
+---
+
 ## Uninstall
 
 To uninstall `ytd`:
@@ -87,11 +99,6 @@ From inside the project directory:
 chmod +x ytd
 ./ytd
 ```
-
-## Arch Linux (AUR)
-
-Package: ytd-lkml  
-https://aur.archlinux.org/packages/ytd-lkml
 
 ---
 
