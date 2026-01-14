@@ -11,6 +11,26 @@ All downloads go directly to your **~/Downloads** folder.
 
 ## Quick Install (Recommended)
 
+### Install curl (if needed)
+
+**Arch / Manjaro / CachyOS**
+```bash
+sudo pacman -S curl
+```
+
+**Ubuntu / Debian / Linux Mint**
+```bash
+sudo apt update
+sudo apt install curl
+```
+
+**Fedora**
+```bash
+sudo dnf install curl
+```
+
+### Install ytd
+
 Install `ytd` with a single command:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tharidul/ytd/main/install.sh | bash
@@ -51,7 +71,6 @@ This removes `ytd` but keeps dependencies (`yt-dlp`, `ffmpeg`, `gum`) installed.
 ## Requirements
 
 You must have these installed on your system:
-
 - `bash`
 - `yt-dlp`
 - `ffmpeg`
@@ -70,9 +89,9 @@ chmod +x ytd
 ```
 
 ## Arch Linux (AUR)
+
 Package: ytd-lkml  
 https://aur.archlinux.org/packages/ytd-lkml
-
 
 ---
 
