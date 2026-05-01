@@ -1,6 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 VERSION="0.2.1"
 AUTHOR="LKML"
 HOMEPAGE="https://tharidulakmal.com"
+DOWNLOAD_DIR="$HOME/Downloads"
 
 # ---------- help / version ----------
 show_help() {
@@ -31,36 +35,108 @@ show_version() {
 }
 
 case "${1:-}" in
-  -h|--help)
-    show_help
-    exit 0
-    ;;
-  -v|--version)
-    show_version
-    exit 0
-    ;;
+  -h|--help) show_help; exit 0 ;;
+  -v|--version) show_version; exit 0 ;;
 esac
 
-
-k#!/usr/bin/env bash
-set -euo pipefail
-
-DOWNLOAD_DIR="$HOME/Downloads"
-
 # ---------- helpers ----------
-die() {
-  echo "ytd: $1" >&2
-  exit 1
-}
-
-require() {
-  command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1"
-}
+die() { echo "ytd: $1" >&2; exit 1; }
+require() { command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1"; }
 
 # ---------- dependencies ----------
 require yt-dlp
 require ffmpeg
 require gum
+
+# ---------- progress bar renderer ----------
+# Draws a live updating progress bar using only ASCII + ANSI codes
+draw_progress() {
+  local percent_raw="$1"   # e.g. 75.3
+  local speed="$2"         # e.g. 10.53MiB/s
+  local eta="$3"           # e.g. 00:00:05
+
+  # Integer part for bar math
+  local percent_int="${percent_raw%.*}"
+  [[ -z "$percent_int" || "$percent_int" -gt 100 ]] && percent_int=100
+
+  local bar_width=40
+  local filled=$(( percent_int * bar_width / 100 ))
+  local empty=$(( bar_width - filled ))
+
+  # ASCII bar with ANSI color: green filled, dim empty
+  local bar_filled bar_empty
+  bar_filled=$(printf '%*s' "$filled" '' | tr ' ' '=')
+  bar_empty=$(printf '%*s' "$empty" '' | tr ' ' '-')
+
+  # ANSI colors
+  local GREEN='\033[32m'
+  local DIM='\033[2m'
+  local BOLD='\033[1m'
+  local CYAN='\033[36m'
+  local RESET='\033[0m'
+
+  # \r rewinds to start of line — true live update
+  printf "\r  ${GREEN}[${BOLD}%s${RESET}${GREEN}${DIM}%s${RESET}${GREEN}]${RESET} ${BOLD}%5s%%${RESET} ${CYAN}%s${RESET} ETA:%s     " \
+    "$bar_filled" "$bar_empty" "$percent_raw" "$speed" "$eta"
+}
+
+# ---------- download with live progress ----------
+run_download() {
+  local -a cmd=("${@}")
+  local current_file=""
+
+  echo ""
+
+  # Use --progress-template to emit ONE clean parseable line per tick
+  # %(progress._percent_str)s  => " 75.3%"
+  # %(progress._speed_str)s    => "10.53MiB/s"
+  # %(progress._eta_str)s      => "00:00:05"
+  # Prefix with PROG: so we can isolate these lines easily
+  local progress_tpl='PROG:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s'
+
+  # Run yt-dlp, force line-buffered stdout via stdbuf
+  stdbuf -oL "${cmd[@]}" \
+    --progress \
+    --newline \
+    --progress-template "$progress_tpl" \
+    2>&1 | while IFS= read -r line; do
+
+    # --- Progress line ---
+    if [[ "$line" == PROG:* ]]; then
+      local data="${line#PROG:}"
+      IFS='|' read -r pct spd eta <<< "$data"
+
+      # Trim whitespace
+      pct="${pct// /}"
+      spd="${spd// /}"
+      eta="${eta// /}"
+
+      # Skip unknown/NA values
+      [[ "$pct" == "N/A" || -z "$pct" ]] && continue
+
+      # Strip trailing % for math, keep for display
+      local pct_display="${pct//%/}"
+      draw_progress "$pct_display" "$spd" "$eta"
+
+    # --- New file destination ---
+    elif [[ "$line" =~ \[download\].*Destination:[[:space:]](.+) ]]; then
+      local fname
+      fname=$(basename "${BASH_REMATCH[1]}")
+      printf "\n\033[1;34m  >> %s\033[0m\n" "$fname"
+
+    # --- Merger step ---
+    elif [[ "$line" =~ \[Merger\] ]]; then
+      printf "\n\033[33m  >> Merging audio + video...\033[0m\n"
+
+    # --- Already downloaded ---
+    elif [[ "$line" =~ \[download\].*has\ already\ been\ downloaded ]]; then
+      printf "\n\033[33m  Already downloaded.\033[0m\n"
+    fi
+
+  done
+
+  printf "\n"
+}
 
 # ---------- CLI MODE ----------
 if [[ $# -ge 2 ]]; then
@@ -71,29 +147,28 @@ if [[ $# -ge 2 ]]; then
 
   case "$MODE" in
     mp3)
-      yt-dlp --no-playlist -x --audio-format mp3 \
+      run_download yt-dlp --no-playlist -x --audio-format mp3 \
         -o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL"
-      exit 0
       ;;
     video)
-      yt-dlp --no-playlist --merge-output-format mp4 \
+      run_download yt-dlp --no-playlist --merge-output-format mp4 \
         -o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL"
-      exit 0
       ;;
     mp3-playlist)
-      yt-dlp -x --audio-format mp3 \
+      run_download yt-dlp -x --audio-format mp3 \
         -o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL"
-      exit 0
       ;;
     video-playlist)
-      yt-dlp --merge-output-format mp4 \
+      run_download yt-dlp --merge-output-format mp4 \
         -o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL"
-      exit 0
       ;;
     *)
       die "unknown mode: $MODE"
       ;;
   esac
+
+  gum style --foreground 42 --bold "  Download finished"
+  exit 0
 fi
 
 # ---------- TUI MODE ----------
@@ -107,13 +182,13 @@ gum style \
 by LKML • tharidulakmal.com"
 
 MODE=$(gum choose \
-  "🎬 Video (single)" \
-  "📺 Video (playlist)" \
-  "🎵 MP3 (single)" \
-  "📀 MP3 (playlist)" \
-  "❌ Exit")
+  "Video (single)" \
+  "Video (playlist)" \
+  "MP3 (single)" \
+  "MP3 (playlist)" \
+  "Exit")
 
-[[ "$MODE" == "❌ Exit" || -z "$MODE" ]] && exit 0
+[[ "$MODE" == "Exit" || -z "$MODE" ]] && exit 0
 
 URL=$(gum input --placeholder "Paste YouTube URL")
 
@@ -133,58 +208,29 @@ fi
 CMD=(yt-dlp)
 
 case "$MODE" in
-  "🎬 Video (single)")
+  "Video (single)")
     CMD+=(--no-playlist)
     [[ "$QUALITY" == "1080p" ]] && CMD+=(-f "bv*[height<=1080]+ba/b")
     [[ "$QUALITY" == "720p" ]]  && CMD+=(-f "bv*[height<=720]+ba/b")
     [[ "$FORMAT" == "MP4 (recommended)" ]] && CMD+=(--merge-output-format mp4)
     CMD+=(-o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL")
     ;;
-  "📺 Video (playlist)")
+  "Video (playlist)")
     [[ "$FORMAT" == "MP4 (recommended)" ]] && CMD+=(--merge-output-format mp4)
     CMD+=(-o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL")
     ;;
-  "🎵 MP3 (single)")
+  "MP3 (single)")
     CMD+=(--no-playlist -x --audio-format mp3)
     CMD+=(-o "$DOWNLOAD_DIR/%(title)s.%(ext)s" "$URL")
     ;;
-  "📀 MP3 (playlist)")
+  "MP3 (playlist)")
     CMD+=(-x --audio-format mp3)
     CMD+=(-o "$DOWNLOAD_DIR/%(playlist)s/%(title)s.%(ext)s" "$URL")
     ;;
 esac
 
-gum confirm "Download to $DOWNLOAD_DIR ?" || exit 0
+gum confirm "Download to $DOWNLOAD_DIR?" || exit 0
 
-echo "Downloading…"
-"${CMD[@]}" 2>&1 \
-  | stdbuf -oL tr '\r' '\n' \
-  | while IFS= read -r line; do
+run_download "${CMD[@]}"
 
-  # Progress line: e.g.  75.3% of 143.20MiB in 00:00:10 at 10.53MiB/s
-  if [[ "$line" =~ [[:space:]]([0-9]+(\.[0-9]+)?)%.*at[[:space:]]+([0-9]+(\.[0-9]+)?[A-Za-z]+/s) ]]; then
-    percent_disp="${BASH_REMATCH[1]}"
-    percent_int="${percent_disp%.*}"   # integer part for bar math
-    speed="${BASH_REMATCH[3]}"
-
-    filled=$(( percent_int > 100 ? 50 : percent_int / 2 ))
-    empty=$(( 50 - filled ))
-    bar=$(printf '%*s' "$filled" '' | tr ' ' '#')
-    empty_bar=$(printf '%*s' "$empty" '' | tr ' ' '-')
-
-    printf "\r  [%s%s] %5s%% | %s          " "$bar" "$empty_bar" "$percent_disp" "$speed"
-
-  # Destination line — new file starting
-  elif [[ "$line" =~ \[download\].*Destination:[[:space:]](.+) ]]; then
-    filename=$(basename "${BASH_REMATCH[1]}")
-    printf "\n  -> %s\n" "$filename"
-
-  # Merger
-  elif [[ "$line" =~ \[Merger\] ]]; then
-    printf "\n  >> Merging formats...\n"
-  fi
-
-done
-
-printf "\n"
-gum style --foreground 42 --bold "✔ Download finished"
+gum style --foreground 42 --bold "  Download finished"
