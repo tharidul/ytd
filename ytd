@@ -158,19 +158,31 @@ gum confirm "Download to $DOWNLOAD_DIR ?" || exit 0
 
 echo "Downloading…"
 "${CMD[@]}" 2>&1 | grep --line-buffered "\[download\]" | while IFS= read -r line; do
-  if [[ "$line" =~ ([0-9]+)%.*at ([0-9.]+[A-Z]+/s) ]]; then
-    percent="${BASH_REMATCH[1]}"
-    speed="${BASH_REMATCH[2]}"
-    # Create simple progress bar
-    filled=$((percent / 2))
-    empty=$((50 - filled))
-    bar=$(printf '%*s' "$filled" | tr ' ' '█')
-    empty_bar=$(printf '%*s' "$empty" | tr ' ' '░')
-    printf "\r[$bar$empty_bar] $percent%% | $speed"
-  elif [[ "$line" =~ 100% ]]; then
-    printf "\r[████████████████████████████████████████████████] 100%% | Complete\n"
+  # Match: [download]   75.3% of  143.20MiB in 00:00:10 at 10.53MiB/s
+  if [[ "$line" =~ [[:space:]]([0-9]+(\.[0-9]+)?)%.*at[[:space:]]+([0-9]+(\.[0-9]+)?[A-Za-z]+/s) ]]; then
+    percent="${BASH_REMATCH[1]%.*}"   # strip decimals for bar math
+    percent_disp="${BASH_REMATCH[1]}" # keep original for display
+    speed="${BASH_REMATCH[3]}"
+
+    # Clamp to 50 cols
+    filled=$(( percent > 100 ? 50 : percent / 2 ))
+    empty=$(( 50 - filled ))
+    bar=$(printf '%0.s█' $(seq 1 $filled) 2>/dev/null || printf '%*s' "$filled" '' | tr ' ' '█')
+    empty_bar=$(printf '%*s' "$empty" '' | tr ' ' '░')
+
+    # \r to overwrite same line, no newline
+    printf "\r  [%s%s] %5s%% │ %s        " "$bar" "$empty_bar" "$percent_disp" "$speed"
+
+  # Destination line — print filename above the bar
+  elif [[ "$line" =~ Destination:[[:space:]](.+) ]]; then
+    filename=$(basename "${BASH_REMATCH[1]}")
+    printf "\n  ↓ %s\n" "$filename"
+
+  # Merger line — print status
+  elif [[ "$line" =~ \[Merger\] ]]; then
+    printf "\n  ⚙  Merging formats…\n"
   fi
 done
 
+echo  # newline after progress bar
 gum style --foreground 42 --bold "✔ Download finished"
-
