@@ -156,10 +156,8 @@ esac
 
 gum confirm "Download to $DOWNLOAD_DIR ?" || exit 0
 
-gum spin \
-  --title "Downloading…" \
-  --spinner dot \
-  -- "${CMD[@]}"
+echo "Downloading…"
+"${CMD[@]}"
 
 gum style --foreground 42 --bold "✔ Download finished"
 
