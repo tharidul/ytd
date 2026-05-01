@@ -1,6 +1,6 @@
 VERSION="0.2.1"
 AUTHOR="LKML"
-HOMEPAGE="https://lkml.live"
+HOMEPAGE="https://tharidulakmal.com"
 
 # ---------- help / version ----------
 show_help() {
@@ -104,7 +104,7 @@ gum style \
   --padding "1 2" \
   --bold \
   "ytd — Terminal YouTube Downloader
-by LKML • lkml.live"
+by LKML • tharidulakmal.com"
 
 MODE=$(gum choose \
   "🎬 Video (single)" \

@@ -3,7 +3,7 @@
 **ytd** is a terminal-based YouTube downloader built on top of `yt-dlp`, with a modern TUI powered by `gum`.
 
 Built and maintained by **LKML**  
-🌐 https://lkml.live
+🌐 https://tharidulakmal.com
 
 All downloads go directly to your **~/Downloads** folder.
 
@@ -106,7 +106,7 @@ chmod +x ytd
 
 **LKML**  
 Full-stack developer & Linux enthusiast  
-🌐 https://lkml.live
+🌐 https://tharidulakmal.com
 
 This project is developed for learning, automation, and personal productivity.
 
