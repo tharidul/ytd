@@ -157,7 +157,20 @@ esac
 gum confirm "Download to $DOWNLOAD_DIR ?" || exit 0
 
 echo "Downloading…"
-"${CMD[@]}"
+"${CMD[@]}" 2>&1 | grep --line-buffered "\[download\]" | while IFS= read -r line; do
+  if [[ "$line" =~ ([0-9]+)%.*at ([0-9.]+[A-Z]+/s) ]]; then
+    percent="${BASH_REMATCH[1]}"
+    speed="${BASH_REMATCH[2]}"
+    # Create simple progress bar
+    filled=$((percent / 2))
+    empty=$((50 - filled))
+    bar=$(printf '%*s' "$filled" | tr ' ' '█')
+    empty_bar=$(printf '%*s' "$empty" | tr ' ' '░')
+    printf "\r[$bar$empty_bar] $percent%% | $speed"
+  elif [[ "$line" =~ 100% ]]; then
+    printf "\r[████████████████████████████████████████████████] 100%% | Complete\n"
+  fi
+done
 
 gum style --foreground 42 --bold "✔ Download finished"
 
